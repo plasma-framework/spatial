@@ -1,0 +1,143 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<parent>
+		<groupId>org.cloudgraph</groupId>
+		<artifactId>spatial</artifactId>
+		<version>0.5.2</version>
+	</parent>
+	<groupId>org.cloudgraph</groupId>
+	<artifactId>spatial-parser</artifactId>
+	<version>0.5.2</version>
+	<packaging>jar</packaging>
+	<name>spatial-parser</name>
+	<description>CloudGraph HBase Example using EPSG Database</description>
+	<url>http://spatial.cloudgraph.org</url>
+	<licenses>
+	</licenses>
+	<scm>
+		<url>https://github.com/cloudgraph/spatial</url>
+		<connection></connection>
+	</scm>
+	<developers>
+		<developer>
+			<id>scinnamond</id>
+			<name>Scott Cinnamond</name>
+			<email>scott.cinnamond@cloudgraph.org</email>
+		</developer>
+	</developers>
+
+	<properties>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<slf4j.version>1.6.1</slf4j.version>
+		<antlr.version>4.5.3</antlr.version>
+	</properties>
+
+
+	<dependencies>
+		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<version>4.12</version>
+		</dependency>
+		<dependency>
+			<groupId>log4j</groupId>
+			<artifactId>log4j</artifactId>
+			<version>1.2.8</version>
+		</dependency>
+		<dependency>
+			<groupId>commons-logging</groupId>
+			<artifactId>commons-logging</artifactId>
+			<version>1.1.1</version>
+		</dependency>
+		<dependency>
+			<groupId>org.antlr</groupId>
+			<artifactId>antlr4-runtime</artifactId>
+			<version>${antlr.version}</version>
+			<type>jar</type>
+			<scope>compile</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.antlr</groupId>
+			<artifactId>antlr4-tool-testsuite</artifactId>
+			<version>${antlr.version}</version>
+			<type>jar</type>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.commons</groupId>
+			<artifactId>commons-csv</artifactId>
+			<version>1.4</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>com.esri.geometry</groupId>
+			<artifactId>esri-geometry-api</artifactId>
+			<version>2.2.3</version>
+		</dependency>
+	<dependency>
+		<groupId>org.locationtech.proj4j</groupId>
+		<artifactId>proj4j</artifactId>
+		<version>1.0.0</version>
+	</dependency>
+		<dependency>
+			<groupId>com.google.guava</groupId>
+			<artifactId>guava</artifactId>
+			<version>16.0</version>
+		</dependency>
+
+	</dependencies>
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<version>2.3.2</version>
+				<configuration>
+					<source>1.8</source>
+					<target>1.8</target>
+					<encoding>UTF-8</encoding>
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.antlr</groupId>
+				<artifactId>antlr4-maven-plugin</artifactId>
+				<version>${antlr.version}</version>
+				<configuration>
+					<sourceDirectory>${basedir}/src/main/resources</sourceDirectory>
+					<outputDirectory>${basedir}/target/generated-soures/java/org/spatial/parser</outputDirectory>
+					<grammars>wkt.g4</grammars>
+					<visitor>true</visitor>
+					<listener>true</listener>
+				</configuration>
+				<executions>
+					<execution>
+						<goals>
+							<goal>antlr4</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+ 		    <plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<version>2.10</version>
+				<configuration>
+                    <argLine>-Xms128M -Xmx500M</argLine>                      
+					<reportsDirectory>${basedir}/target/test-output</reportsDirectory>
+					<useSystemClassLoader>true</useSystemClassLoader>
+					<useManifestOnlyJar>true</useManifestOnlyJar>
+					<additionalClasspathElements>
+						<additionalClasspathElement>${basedir}/src/main/resources</additionalClasspathElement>
+					</additionalClasspathElements>
+
+					<forkMode>pertest</forkMode>
+					<!-- <forkMode>never</forkMode> -->
+					<!-- <suiteXmlFiles> -->
+					<!-- <suiteXmlFile>testng.xml</suiteXmlFile> -->
+					<!-- </suiteXmlFiles> -->
+				</configuration>
+			</plugin>
+		</plugins>
+	</build>
+</project>
