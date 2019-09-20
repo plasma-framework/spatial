@@ -1,5 +1,8 @@
 package org.cloudgraph.spatial.indexing;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -7,6 +10,7 @@ import com.esri.core.geometry.Envelope;
 import com.esri.core.geometry.Envelope2D;
 import com.esri.core.geometry.Geometry;
 import com.esri.core.geometry.GeometryEngine;
+import com.esri.core.geometry.Point;
 
 public class Grid {
 	private static Log log = LogFactory.getLog(Grid.class);
@@ -17,7 +21,8 @@ public class Grid {
     private Cell root;
 	private double resolution = -1.0d;
 	private int cellCount;
-    
+    @SuppressWarnings("unused")
+	private Grid() {}
     public Grid(long rootCellUnits, int cells, int levels) {
 		super();
 		this.rootCellUnits = rootCellUnits;
@@ -40,10 +45,11 @@ public class Grid {
     public Cell tesselate(Geometry shape) {
 		Envelope2D boundry = new Envelope2D();
 		shape.queryEnvelope2D(boundry);
-		
+ 		
  		this.root = snapToRootCellGrid(boundry); 
 		long width = (long)this.root.getRect().getWidth();
-		long height = (long)this.root.getRect().getHeight(); 		 
+		long height = (long)this.root.getRect().getHeight(); 
+		// Note: for root cells the number of cells for X and Y can vary
  		int widthX = (int)(width / (long)this.rootCellUnits);
  		int widthY = (int)(height / (long)this.rootCellUnits);
  		
@@ -69,7 +75,118 @@ public class Grid {
     public int getCellCount() {
 		return cellCount;
 	}
-
+    
+    public CellAddress getAddress(Point point) {
+		Envelope globalCellRect = new Envelope(
+			snapRectTerm(point.getX(), true), 
+			snapRectTerm(point.getY(), true), 
+			snapRectTerm(point.getX(), false), 
+			snapRectTerm(point.getY(), false));
+		int undexUnitsX = GridUtil.getGlobalIndexUnits(point.getX(), this.rootCellUnits);
+		int undexUnitsY = GridUtil.getGlobalIndexUnits(point.getY(), this.rootCellUnits);
+		long width = (long)globalCellRect.getWidth();
+		long height = (long)globalCellRect.getHeight(); 		 
+ 		int widthX = (int)(width / (long)this.rootCellUnits);
+ 		int widthY = (int)(height / (long)this.rootCellUnits);		
+ 		
+ 		List<Integer> values = new ArrayList<>();
+ 		tesselate(globalCellRect, widthX, widthY, point, values, 0);
+		int[] valueArray = new int[values.size()];
+		int i = 0;
+		for (Integer val : values) {
+			valueArray[i] = val;
+			i++;
+		}
+ 		
+		CellAddress result = new CellAddress(
+			(long)globalCellRect.getXMin(), (long)globalCellRect.getYMax(), 
+			undexUnitsX, undexUnitsY, valueArray);
+		
+		return result;
+    }
+    
+    private void tesselate(Envelope source, int widthX, int widthY, Point point, List<Integer> values, int level)
+    {
+    	if (level == this.levels) {
+    		return;
+    	}
+ 		double width = source.getWidth();
+ 		double height = source.getHeight(); 		 
+		double currX = source.getXMin();
+		double currY = source.getYMax();
+		double incrX = width / widthX;
+		double incrY = height / widthY;
+		int cellIndex = 0;
+		for (int i = 0; i < widthY; i++) {
+		    for (int j = 0; j < widthX; j++) {
+ 				Envelope cellRect = new Envelope(currX, currY-incrY, currX+incrX, currY);
+ 		 		if (GeometryEngine.contains(cellRect, point, null)) {
+ 		 			values.add(cellIndex);
+ 	 				tesselate(cellRect, this.cellsPerRow, this.cellsPerRow, point, values, level+1);
+ 				}
+  				currX = currX + incrX;
+  				cellIndex++;
+ 			}
+ 			currY = currY - incrY;
+ 			currX = (int)source.getXMin();
+ 		}    	
+    }
+    
+    public CellPath getPath(Point point) {
+		Envelope globalCellRect = new Envelope(
+			snapRectTerm(point.getX(), true), 
+			snapRectTerm(point.getY(), true), 
+			snapRectTerm(point.getX(), false), 
+			snapRectTerm(point.getY(), false));
+		long width = (long)globalCellRect.getWidth();
+		long height = (long)globalCellRect.getHeight(); 		 
+ 		int widthX = (int)(width / (long)this.rootCellUnits);
+ 		int widthY = (int)(height / (long)this.rootCellUnits);		
+ 		
+ 		GlobalCell root = new GlobalCell(this, null, -1, globalCellRect, 1);
+ 		tesselate(root, widthX, widthY, point);
+ 		
+ 		CellPath result = new CellPath(root);
+ 		
+		return result;
+    }
+    
+	/**
+     * Generates a cell tesselation tree for the given geometry.  
+     * @param source the source or parent cell
+     * @param widthX the number of cells along X axis
+     * @param widthY the number of cells along Y axis
+     * @param geom the geometry
+     */
+    private void tesselate(Cell source, int widthX, int widthY, Point point) {
+    	if (source.getLevel() == this.levels) {
+    		return;
+    	}
+  		double width = source.getRect().getWidth();
+ 		double height = source.getRect().getHeight(); 		 
+		double currX = source.getRect().getXMin();
+		double currY = source.getRect().getYMax();
+		double incrX = width / widthX;
+		double incrY = height / widthY;
+		int cellIndex = 0;
+		for (int i = 0; i < widthY; i++) {
+		    for (int j = 0; j < widthX; j++) {
+ 				Envelope cellRect = new Envelope(currX, currY-incrY, currX+incrX, currY);
+				boolean contains = GeometryEngine.contains(cellRect, point, null);
+				if (contains) {
+ 				    Cell target = new Cell(this, source, cellIndex, cellRect, source.getLevel()+1);
+	 				source.addCell(target);
+	 				//FIXME: kind of a hack, ignores the input cell width X/Y on recursion. 
+				    tesselate(target, this.cellsPerRow, this.cellsPerRow, point);
+ 				} // else don't need the cell 
+  				currX = currX + incrX;
+  				cellIndex++;
+ 			}
+ 			currY = currY - incrY;
+ 			currX = (int)source.getRect().getXMin();
+ 		}
+    }    
+ 
 	/**
      * Generates a cell tesselation tree for the given geometry.  
      * @param source the source or parent cell

@@ -3,24 +3,27 @@ package org.cloudgraph.spatial.indexing;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
-public class GridWktWriter implements CellVisitor {
-	private static Log log = LogFactory.getLog(GridWktWriter.class);
-	private StringBuilder buf = new StringBuilder();
+public class CellPath {
+    private GlobalCell root;
 	private NumberFormat formatter = new DecimalFormat(GridUtil.PATTERN);     
-	public GridWktWriter() {
+
+	public CellPath(GlobalCell root) {
+		super();
+		this.root = root;
 	}
-	
-	public String getResult() {
+
+	public GlobalCell getRoot() {
+		return root;
+	}
+    
+	public String asWkt() {
+		StringBuilder buf = new StringBuilder();
+		asWkt(this.root, null, buf);
 		return buf.toString();
 	}
-
-	@Override
-	public void visit(Cell target, Cell source, int level) {
-		//if (source == null)
-		//	return;
+    
+	private void asWkt(Cell target, Cell source, StringBuilder buf) {
+		
 		buf.append("POLYGON (");
  		buf.append("(");
 		
@@ -57,6 +60,9 @@ public class GridWktWriter implements CellVisitor {
 		
 		buf.append('\n');
 		buf.append("\r\n");
+		
+		for (Cell cell : target.getCells()) {
+			asWkt(cell, target, buf);
+		}
 	}
-
 }

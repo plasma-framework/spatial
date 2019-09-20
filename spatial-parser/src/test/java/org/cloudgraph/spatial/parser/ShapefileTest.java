@@ -29,6 +29,7 @@ import org.apache.commons.logging.LogFactory;
 import org.cloudgraph.spatial.indexing.Cell;
 import org.cloudgraph.spatial.indexing.CellAddress;
 import org.cloudgraph.spatial.indexing.CellCounter;
+import org.cloudgraph.spatial.indexing.CellPath;
 import org.cloudgraph.spatial.indexing.CellVisitor;
 import org.cloudgraph.spatial.indexing.Grid;
 import org.cloudgraph.spatial.indexing.CellAddressCollector;
@@ -58,6 +59,8 @@ import com.esri.core.geometry.OperatorImportFromWkt;
 import com.esri.core.geometry.OperatorIntersects;
 import com.esri.core.geometry.OperatorSimplifyOGC;
 import com.esri.core.geometry.OperatorWithin;
+import com.esri.core.geometry.Point;
+import com.esri.core.geometry.Point2D;
 import com.esri.core.geometry.ProgressTracker;
 import com.esri.core.geometry.SpatialReference;
 import com.esri.core.geometry.WktImportFlags;
@@ -83,8 +86,8 @@ public class ShapefileTest {
 			// log.info(rec.toString());
 			String wkt = rec.get(0);
 			String field = rec.get(1);
-			//if (!("WV".equals(field)))
-			//	continue;
+			if (!("WV".equals(field)))
+				continue;
  		    BufferedWriter stateWriter = new BufferedWriter(
  		    		new FileWriter("target/" + field + ".wkt"));
  		    stateWriter.write(wkt);		     
@@ -108,7 +111,7 @@ public class ShapefileTest {
 			
             // create an index grid  	
 			long start = System.currentTimeMillis();
-			Grid grid = new Grid(100000, 4, 6);
+			Grid grid = new Grid(10000, 4, 6);
 			Cell rootCell = grid.tesselate(simpleShape);
 			log.info(grid);
 			log.info("tesselated "+grid.getCellCount()+" cell shape "+field+" in " + String.valueOf(System.currentTimeMillis()-start));
@@ -121,12 +124,20 @@ public class ShapefileTest {
  		    gridWriter.write(writer.getResult());		     
  		    gridWriter.close();
  		    
-// 		    CellAddressCollector indexCollector = new CellAddressCollector();
-// 		    rootCell.accept(indexCollector);
-// 		    for (CellAddress idx : indexCollector.getResult()) {
-// 		    	log.info(idx);
-// 		    }
- 			
+ 		    CellAddressCollector indexCollector = new CellAddressCollector();
+ 		    rootCell.accept(indexCollector);
+ 		    for (CellAddress idx : indexCollector.getResult()) {
+ 		    	//log.info(idx);
+ 		    }
+ 		    
+ 		    Point2D point2d = boundry.getCenter();
+ 		    Point point = new Point(point2d);
+ 		    CellPath cellPath = grid.getPath(point);
+ 		    BufferedWriter centerPathWriter = new BufferedWriter(
+ 		    		new FileWriter("target/" + field + "_grid_center_path.wkt"));
+ 		    centerPathWriter.write(cellPath.asWkt());		     
+ 		    centerPathWriter.close();
+   			
 // 			boolean indexRectContainsBoundry = GeometryEngine.contains(rootCellRect, new Envelope(boundry), null);
 //			log.info("indexRectContainsBoundry: " + indexRectContainsBoundry);
 //			assertTrue(indexRectContainsBoundry);

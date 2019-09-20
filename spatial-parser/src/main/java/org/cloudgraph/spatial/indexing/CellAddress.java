@@ -27,7 +27,7 @@ public class CellAddress {
 	public int[] getValues() {
 		return values;
 	}
- 
+	
 	public String toString() {
 		StringBuilder buf = new StringBuilder();
 		buf.append(this.getClass().getSimpleName());

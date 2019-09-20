@@ -1,7 +1,6 @@
 package org.cloudgraph.spatial.indexing;
 
 import com.esri.core.geometry.Envelope;
-import com.esri.core.geometry.Point;
 
 /**
  * A grid cell which is globally addressable. 
@@ -20,11 +19,11 @@ public class GlobalCell extends Cell {
 	public GlobalCell(Grid grid, Cell parent, int index, Envelope rect,
 			int level) {
 		super(grid, parent, index, rect, level);
-		Point center = this.rect.getCenter();
-		double x = center.getX();
-		double y = center.getY();
-        x = this.rect.getXMin();
-        y = this.rect.getYMax();
+		//Point center = this.rect.getCenter();
+		//double x = center.getX();
+		//double y = center.getY();
+		double x = this.rect.getXMin();
+		double y = this.rect.getYMax();
 		
 		long longX = GridUtil.getGlobalUnits(x, this.grid.getRootCellUnits());
 		if (longX > Integer.MAX_VALUE)

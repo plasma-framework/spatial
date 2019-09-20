@@ -27,4 +27,6 @@ public class GridUtil {
  			result = result * -1;
 		return (int)result;
 	}
+
+	static final String PATTERN = "###############.###############";
 }
