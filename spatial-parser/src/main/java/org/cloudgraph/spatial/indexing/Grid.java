@@ -10,10 +10,17 @@ import com.esri.core.geometry.Envelope;
 import com.esri.core.geometry.Envelope2D;
 import com.esri.core.geometry.Geometry;
 import com.esri.core.geometry.GeometryEngine;
+import com.esri.core.geometry.Operator;
+import com.esri.core.geometry.OperatorContains;
+import com.esri.core.geometry.OperatorDifference;
+import com.esri.core.geometry.OperatorDisjoint;
+import com.esri.core.geometry.OperatorFactoryLocal;
 import com.esri.core.geometry.Point;
+import com.esri.core.geometry.Geometry.GeometryAccelerationDegree;
 
 public class Grid {
 	private static Log log = LogFactory.getLog(Grid.class);
+	private Geometry shape;
     private long rootCellUnits = 500000;
     private int cells = 16;
     private int cellsPerRow;
@@ -21,11 +28,13 @@ public class Grid {
     private Cell root;
 	private double resolution = -1.0d;
 	private int cellCount;
+	private OperatorDisjoint disjointOp;
+	private OperatorContains containsOp;
     @SuppressWarnings("unused")
 	private Grid() {}
     public Grid(long rootCellUnits, int cells, int levels) {
 		super();
-		this.rootCellUnits = rootCellUnits;
+ 		this.rootCellUnits = rootCellUnits;
 		this.cells = cells;
 		this.cellsPerRow = (int)Math.sqrt(this.cells);		
 		if (this.cells < 4 || this.cells > 100)
@@ -36,7 +45,17 @@ public class Grid {
 		this.levels = levels;
 		if (log.isDebugEnabled())
 		    log.debug("levels: " + this.levels + " cells: " + this.cells + " cells per row: " + this.cellsPerRow); 		
+		//OperatorFactoryLocal engine = OperatorFactoryLocal.getInstance();
+		this.disjointOp = (OperatorDisjoint) (OperatorFactoryLocal
+				.getInstance().getOperator(Operator.Type.Disjoint));
+		this.containsOp = (OperatorContains) (OperatorFactoryLocal
+				.getInstance().getOperator(Operator.Type.Contains));
 	}
+    
+    public void accellerate(Geometry shape) {
+		this.disjointOp.accelerateGeometry(shape, null, GeometryAccelerationDegree.enumHot);		    	
+		this.containsOp.accelerateGeometry(shape, null, GeometryAccelerationDegree.enumHot);		    	
+    }
     
     /**
      * Generates a cell tesselation tree for the given geometry.
@@ -45,6 +64,7 @@ public class Grid {
     public Cell tesselate(Geometry shape) {
 		Envelope2D boundry = new Envelope2D();
 		shape.queryEnvelope2D(boundry);
+		Envelope shapeEnvelope = new Envelope(boundry);
  		
  		this.root = snapToRootCellGrid(boundry); 
 		long width = (long)this.root.getRect().getWidth();
@@ -120,7 +140,7 @@ public class Grid {
 		for (int i = 0; i < widthY; i++) {
 		    for (int j = 0; j < widthX; j++) {
  				Envelope cellRect = new Envelope(currX, currY-incrY, currX+incrX, currY);
- 		 		if (GeometryEngine.contains(cellRect, point, null)) {
+ 		 		if (this.containsOp.execute(cellRect, point, null, null)) {
  		 			values.add(cellIndex);
  	 				tesselate(cellRect, this.cellsPerRow, this.cellsPerRow, point, values, level+1);
  				}
@@ -172,8 +192,7 @@ public class Grid {
 		for (int i = 0; i < widthY; i++) {
 		    for (int j = 0; j < widthX; j++) {
  				Envelope cellRect = new Envelope(currX, currY-incrY, currX+incrX, currY);
-				boolean contains = GeometryEngine.contains(cellRect, point, null);
-				if (contains) {
+ 				if (this.containsOp.execute(cellRect, point, null, null)) {
  				    Cell target = new Cell(this, source, cellIndex, cellRect, source.getLevel()+1);
 	 				source.addCell(target);
 	 				//FIXME: kind of a hack, ignores the input cell width X/Y on recursion. 
@@ -199,7 +218,7 @@ public class Grid {
     		return;
     	}
     	
- 		if (GeometryEngine.contains(geom, source.getRect(), null)) {
+ 		if (this.containsOp.execute(geom, source.getRect(), null, null)) {
  			// current cell entirely contained by shape, no need to
  			// tesselate further
 			return; 
@@ -214,7 +233,8 @@ public class Grid {
 		for (int i = 0; i < widthY; i++) {
 		    for (int j = 0; j < widthX; j++) {
  				Envelope cellRect = new Envelope(currX, currY-incrY, currX+incrX, currY);
-				boolean disjoint = GeometryEngine.disjoint(cellRect, geom, null);
+ 				boolean disjoint = false;
+				disjoint = this.disjointOp.execute(cellRect, geom, null, null);
 				if (!disjoint) {
 					Cell target = null;
 					if (source.getLevel() > 0)
@@ -224,8 +244,8 @@ public class Grid {
 	 				source.addCell(target);
 	 				//FIXME: kind of a hack, ignores the input cell width X/Y on recursion. 
 				    tesselate(target, this.cellsPerRow, this.cellsPerRow, geom);
- 				} // else don't need the cell as outside shape/line
-  				currX = currX + incrX;
+				}
+   				currX = currX + incrX;
   				cellIndex++;
  			}
  			currY = currY - incrY;

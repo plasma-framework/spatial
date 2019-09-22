@@ -86,8 +86,8 @@ public class ShapefileTest {
 			// log.info(rec.toString());
 			String wkt = rec.get(0);
 			String field = rec.get(1);
-			if (!("WV".equals(field)))
-				continue;
+			//if (!("WV".equals(field)))
+			//	continue;
  		    BufferedWriter stateWriter = new BufferedWriter(
  		    		new FileWriter("target/" + field + ".wkt"));
  		    stateWriter.write(wkt);		     
@@ -111,7 +111,8 @@ public class ShapefileTest {
 			
             // create an index grid  	
 			long start = System.currentTimeMillis();
-			Grid grid = new Grid(10000, 4, 6);
+			Grid grid = new Grid(250000, 4, 12);
+			grid.accellerate(simpleShape);
 			Cell rootCell = grid.tesselate(simpleShape);
 			log.info(grid);
 			log.info("tesselated "+grid.getCellCount()+" cell shape "+field+" in " + String.valueOf(System.currentTimeMillis()-start));
@@ -124,11 +125,11 @@ public class ShapefileTest {
  		    gridWriter.write(writer.getResult());		     
  		    gridWriter.close();
  		    
- 		    CellAddressCollector indexCollector = new CellAddressCollector();
- 		    rootCell.accept(indexCollector);
- 		    for (CellAddress idx : indexCollector.getResult()) {
- 		    	//log.info(idx);
- 		    }
+// 		    CellAddressCollector indexCollector = new CellAddressCollector();
+// 		    rootCell.accept(indexCollector);
+// 		    for (CellAddress idx : indexCollector.getResult()) {
+// 		    	log.info(idx);
+// 		    }
  		    
  		    Point2D point2d = boundry.getCenter();
  		    Point point = new Point(point2d);
