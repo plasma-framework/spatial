@@ -28,6 +28,7 @@
        <module>spatial-repo</module>
        <module>spatial-proj</module>
        <module>spatial-parser</module>
+       <module>spatial-indexing</module>
     </modules>
                
   <properties> 
